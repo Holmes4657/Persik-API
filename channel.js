@@ -1,13 +1,20 @@
 function apiLoad() {
     return fetch("http://api.persik.by/v2/content/channels?device=web-by", {
         method: 'GET'
-    }).then(data => data.json())
+    }).then(data => data.json());
 }
 
 function loadGenres() {
     return fetch("http://api.persik.by/v2/categories/channel", {
         method: 'GET'
-    }).then(data => data.json())
+    }).then(data => data.json());
+}
+
+function loadTvshows(channelId) {
+    const currentDate = moment().format('YYYY-MM-DD');
+    return fetch("http://api.persik.by/v2/epg/tvshows".concat('?channels[]=', channelId, '&limit=50&from=', currentDate, '&to=', currentDate), {
+        method: 'GET'
+    }).then(data => data.json());
 }
 
 let channels = [];
@@ -57,6 +64,107 @@ function createChannelsCard(channel) {
 
     card.appendChild(img);
     card.appendChild(name);
+
+    //Store Id
+    //const laodTvshowsHandler = fucntion() { loadTvshows(channel.channel_id);}
+
+    card.addEventListener('click', () =>{
+        loadTvshows(channel.channel_id).then(data => drawTvshows(data.tvshows.items));
+    });
+
+    return card;
+}
+
+function createCurrentTvshowCard(tvshow) {
+    const card = document.createElement('div');
+    card.classList.add('current-tvshow');
+
+    const title = document.createElement('span');
+    title.classList.add('tvshowtitle-cur');
+    title.innerText = tvshow.title;
+    //Выпадашка при наведении
+    title.title = tvshow.title;
+
+    const info = document.createElement('div');
+    info.classList.add('tvshow-info');
+
+    const startSpan = document.createElement('span');
+    const startTime = moment.unix(tvshow.start).format('HH:mm');
+    startSpan.innerText = startTime;
+
+    const endSpan = document.createElement('span');
+    const endTime = moment.unix(tvshow.stop).format('HH:mm');
+    endSpan.innerText = endTime;
+
+    const progress = document.createElement('div');
+    progress.classList.add('progress');
+
+    const progressLine = document.createElement('div');
+    progressLine.classList.add('progress-line');
+    progressLine.style.width = getProgress(tvshow.start, tvshow.stop) + "%";
+
+    progress.appendChild(progressLine);
+
+    info.appendChild(startSpan);
+    info.appendChild(progress);
+    info.appendChild(endSpan);
+
+    card.appendChild(title);
+    card.appendChild(info);
+
+    return card;
+}
+
+function getProgress(start, stop) {
+    const currentTime = moment().unix();
+    return Math.round(((currentTime - start) / (stop - start)) * 100);
+}
+
+function drawTvshows(tvshows) {
+    const tvshowsArea = document.getElementsByClassName('tvshows')[0];
+    tvshowsArea.innerHTML = '';
+    tvshows.forEach(element => {
+        const tvshowCard = createTvshowCard(element);
+        tvshowsArea.appendChild(tvshowCard);
+    });
+
+    const currentTvshow = document.getElementsByClassName('current-tvshow')[0];
+    console.log(currentTvshow.getBoundingClientRect());
+    if(currentTvshow) {
+        //Event Loop
+        setTimeout(() => {
+            currentTvshow.scrollIntoView({behavior: 'smooth', block: 'center'})
+        }, 0);
+    }
+}
+
+function createTvshowCard(tvshow) {
+    const currentTime = moment().unix();
+    if(currentTime >= +tvshow.start && currentTime < tvshow.stop) {
+        return createCurrentTvshowCard(tvshow);
+    }
+    return createSimpleTvshowCard(tvshow);
+}
+
+function createSimpleTvshowCard(tvshow) {
+    const card = document.createElement('div');
+    card.classList.add('simple-tvshow');
+
+    const title = document.createElement('span');
+    title.classList.add('tvshowtitle');
+    title.innerText = tvshow.title;
+    //Выпадашка при наведении
+    title.title = tvshow.title;
+
+    const time = document.createElement('span');
+    time.classList.add('tvshowtime');
+    const startTime = moment.unix(tvshow.start).format('HH:mm');
+    const endTime = moment.unix(tvshow.stop).format('HH:mm');
+    time.innerText = `${ startTime }-${ endTime }`;
+
+    card.appendChild(title);
+    card.appendChild(time);
+
     return card;
 }
 
@@ -66,7 +174,8 @@ function drawChannel(items) {
     items.forEach(item => {
         const channelCard = createChannelsCard(item);
         channelsBlock.appendChild(channelCard);
-    })
+    });
+    loadTvshows(items[0].channel_id).then(data => drawTvshows(data.tvshows.items));
 }
 
 function onGenreChange(event) {
@@ -82,3 +191,18 @@ function onGenreChange(event) {
 }
 
 apiLoad().then(data => console.log(data.channels[0]));
+
+//------------------------ Prototypes --------------------------
+
+const elem = 10;
+
+Number.prototype.toString = function() {
+    if(+this < 10) return `${+this}`;
+    return 'Превышен лимит';
+}
+
+Number.prototype.myFunc = function() {
+    return 10;
+}
+console.log(elem.myFunc());
+//--------------------------------------------------------------
