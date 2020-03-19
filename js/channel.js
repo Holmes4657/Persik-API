@@ -21,7 +21,18 @@ async function loadTvshows(channelId) {
 }
 
 let channels = [];
+const showlist = document.getElementsByClassName('channels-block')[0];
 
+loadGenres().then(data => {
+    const allGenre = {
+        id: 0,
+        name: "Все жанры"
+    };
+    data.unshift(allGenre);
+    drawGenres(data);
+});
+
+//Draw all genres
 function drawGenres(genres) {
     const dropdown = document.getElementById("dropdown");
     dropdown.addEventListener('change', onGenreChange);
@@ -32,6 +43,7 @@ function drawGenres(genres) {
     });
 }
 
+//Create genres from api
 function createOption(genre) {
     const option = document.createElement('option');
     option.innerText = genre.name;
@@ -44,18 +56,49 @@ apiLoad().then(data => {
     drawChannel(channels);
 })
 
-loadGenres().then(data => {
-    const allGenre = {
-        id: 0,
-        name: "Все жанры"
-    };
-    data.unshift(allGenre);
-    drawGenres(data);
-});
+//Draw all created cards
+function drawChannel(items) {
+    const channelsBlock = document.getElementsByClassName('channels-block')[0];
+    const activeButton = document.getElementById('sorting');
+    
+    channelsBlock.innerHTML = '';
 
-const showlist = document.getElementsByClassName('channels-block')[0];
+    //Sorting event
+    activeButton.addEventListener('change', () => {
+        sortFunction();
+    });
 
-function createChannelsCard(channel) {
+    function sortFunction() {
+        if(activeButton.value == '1') {
+            console.log('Options 1');
+        }
+        if(activeButton.value == '2') {
+            console.log('Options 2');
+        }
+    }
+
+    //Sorting
+    items.sort(function(a, b){
+        return compareStrings(a.name, b.name);
+    });
+
+    items.forEach(item => {
+        const channelCard = createChannelCard(item);
+        channelsBlock.appendChild(channelCard);
+    });
+    loadTvshows(items[0].channel_id).then(data => drawTvshows(data.tvshows.items));
+}
+
+//Sorting function
+function compareStrings(a, b) {
+    a = a.toLowerCase();
+    b = b.toLowerCase();
+  
+    return (a < b) ? -1 : (a > b) ? 1 : 0;
+}
+
+//Create TV card from api
+function createChannelCard(channel) {
     const card = document.createElement('div');
     card.className = 'card';
 
@@ -72,12 +115,60 @@ function createChannelsCard(channel) {
     card.appendChild(img);
     card.appendChild(name);
 
-    //Store Id
-    //const laodTvshowsHandler = fucntion() { loadTvshows(channel.channel_id);}
-
+    //When the button is pressed, show the TV shows.
     card.addEventListener('click', () =>{
         loadTvshows(channel.channel_id).then(data => drawTvshows(data.tvshows.items));
     });
+
+    return card;
+}
+
+//Draw a TV show
+function drawTvshows(tvshows) {
+    const tvshowsArea = document.getElementsByClassName('tvshows')[0];
+    tvshowsArea.innerHTML = '';
+    tvshows.forEach(element => {
+        const tvshowCard = createTvshowCard(element);
+        tvshowsArea.appendChild(tvshowCard);
+    });
+
+    const currentTvshow = document.getElementsByClassName('current-tvshow')[0];
+    //console.log(currentTvshow.getBoundingClientRect());
+    if(currentTvshow) {
+        //Event Loop
+        setTimeout(() => {
+            currentTvshow.scrollIntoView({behavior: 'smooth', block: 'center'})
+        }, 0);
+    }
+}
+
+//Create a simple or current TV show.
+function createTvshowCard(tvshow) {
+    const currentTime = moment().unix();
+    if(currentTime >= +tvshow.start && currentTime < tvshow.stop) {
+        return createCurrentTvshowCard(tvshow);
+    }
+    return createSimpleTvshowCard(tvshow);
+}
+
+function createSimpleTvshowCard(tvshow) {
+    const card = document.createElement('div');
+    card.classList.add('simple-tvshow');
+
+    const title = document.createElement('span');
+    title.classList.add('tvshowtitle');
+    title.innerText = tvshow.title;
+    //Выпадашка при наведении
+    title.title = tvshow.title;
+
+    const time = document.createElement('span');
+    time.classList.add('tvshowtime');
+    const startTime = moment.unix(tvshow.start).format('HH:mm');
+    const endTime = moment.unix(tvshow.stop).format('HH:mm');
+    time.innerText = `${ startTime }-${ endTime }`;
+
+    card.appendChild(title);
+    card.appendChild(time);
 
     return card;
 }
@@ -122,84 +213,10 @@ function createCurrentTvshowCard(tvshow) {
     return card;
 }
 
+//Progress bar
 function getProgress(start, stop) {
     const currentTime = moment().unix();
     return Math.round(((currentTime - start) / (stop - start)) * 100);
-}
-
-function drawTvshows(tvshows) {
-    const tvshowsArea = document.getElementsByClassName('tvshows')[0];
-    tvshowsArea.innerHTML = '';
-    tvshows.forEach(element => {
-        const tvshowCard = createTvshowCard(element);
-        tvshowsArea.appendChild(tvshowCard);
-    });
-
-    const currentTvshow = document.getElementsByClassName('current-tvshow')[0];
-    //console.log(currentTvshow.getBoundingClientRect());
-    if(currentTvshow) {
-        //Event Loop
-        setTimeout(() => {
-            currentTvshow.scrollIntoView({behavior: 'smooth', block: 'center'})
-        }, 0);
-    }
-}
-
-function createTvshowCard(tvshow) {
-    const currentTime = moment().unix();
-    if(currentTime >= +tvshow.start && currentTime < tvshow.stop) {
-        return createCurrentTvshowCard(tvshow);
-    }
-    return createSimpleTvshowCard(tvshow);
-}
-
-function createSimpleTvshowCard(tvshow) {
-    const card = document.createElement('div');
-    card.classList.add('simple-tvshow');
-
-    const title = document.createElement('span');
-    title.classList.add('tvshowtitle');
-    title.innerText = tvshow.title;
-    //Выпадашка при наведении
-    title.title = tvshow.title;
-
-    const time = document.createElement('span');
-    time.classList.add('tvshowtime');
-    const startTime = moment.unix(tvshow.start).format('HH:mm');
-    const endTime = moment.unix(tvshow.stop).format('HH:mm');
-    time.innerText = `${ startTime }-${ endTime }`;
-
-    card.appendChild(title);
-    card.appendChild(time);
-
-    return card;
-}
-
-function drawChannel(items) {
-    const channelsBlock = document.getElementsByClassName('channels-block')[0];
-    const activeButton = document.getElementById('sorting');
-    
-    channelsBlock.innerHTML = '';
-
-    items.forEach(item => {
-        const channelCard = createChannelsCard(item);
-        channelsBlock.appendChild(channelCard);
-    });
-    loadTvshows(items[0].channel_id).then(data => drawTvshows(data.tvshows.items));
-
-    //Sorting
-    activeButton.addEventListener('change', () => {
-        sortFunction();
-    });
-
-    function sortFunction() {
-        if(activeButton.value == '1') {
-            console.log('Options 1');
-        }
-        if(activeButton.value == '2') {
-            console.log('Options 2');
-        }
-    }
 }
 
 function onGenreChange(event) {
