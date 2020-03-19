@@ -1,20 +1,23 @@
-function apiLoad() {
-    return fetch("http://api.persik.by/v2/content/channels?device=web-by", {
+async function apiLoad() {
+    const data = await fetch("http://api.persik.by/v2/content/channels?device=web-by", {
         method: 'GET'
-    }).then(data => data.json());
+    });
+    return await data.json();
 }
 
-function loadGenres() {
-    return fetch("http://api.persik.by/v2/categories/channel", {
+async function loadGenres() {
+    const data = await fetch("http://api.persik.by/v2/categories/channel", {
         method: 'GET'
-    }).then(data => data.json());
+    });
+    return await data.json();
 }
 
-function loadTvshows(channelId) {
+async function loadTvshows(channelId) {
     const currentDate = moment().format('YYYY-MM-DD');
-    return fetch("http://api.persik.by/v2/epg/tvshows".concat('?channels[]=', channelId, '&limit=50&from=', currentDate, '&to=', currentDate), {
+    const data = await fetch("http://api.persik.by/v2/epg/tvshows".concat('?channels[]=', channelId, '&limit=50&from=', currentDate, '&to=', currentDate), {
         method: 'GET'
-    }).then(data => data.json());
+    });
+    return await data.json();
 }
 
 let channels = [];
@@ -58,6 +61,10 @@ function createChannelsCard(channel) {
 
     const img = document.createElement('img');
     img.src = channel.logo;
+    //If the image is not found
+    img.onerror = function() {
+        img.src = './images/stub.png'
+    };
 
     const name = document.createElement('span');
     name.innerText = channel.name;
@@ -129,7 +136,7 @@ function drawTvshows(tvshows) {
     });
 
     const currentTvshow = document.getElementsByClassName('current-tvshow')[0];
-    console.log(currentTvshow.getBoundingClientRect());
+    //console.log(currentTvshow.getBoundingClientRect());
     if(currentTvshow) {
         //Event Loop
         setTimeout(() => {
@@ -170,12 +177,29 @@ function createSimpleTvshowCard(tvshow) {
 
 function drawChannel(items) {
     const channelsBlock = document.getElementsByClassName('channels-block')[0];
+    const activeButton = document.getElementById('sorting');
+    
     channelsBlock.innerHTML = '';
+
     items.forEach(item => {
         const channelCard = createChannelsCard(item);
         channelsBlock.appendChild(channelCard);
     });
     loadTvshows(items[0].channel_id).then(data => drawTvshows(data.tvshows.items));
+
+    //Sorting
+    activeButton.addEventListener('change', () => {
+        sortFunction();
+    });
+
+    function sortFunction() {
+        if(activeButton.value == '1') {
+            console.log('Options 1');
+        }
+        if(activeButton.value == '2') {
+            console.log('Options 2');
+        }
+    }
 }
 
 function onGenreChange(event) {
@@ -190,4 +214,4 @@ function onGenreChange(event) {
     drawChannel(filteredChannels);
 }
 
-apiLoad().then(data => console.log(data.channels[0]));
+//apiLoad().then(data => console.log(data.channels[0]));

@@ -23,7 +23,7 @@
 #dropdown {
     width: 100%;
     height: 2rem;
-    margin-bottom: 1rem;
+    margin-bottom: 0.7rem;
 }
 
 .channels-block {
@@ -145,4 +145,10 @@
     position: absolute;
     left: 0;
     top: 0;
+}
+
+#sorting {
+    width: 100%;
+    height: 2rem;
+    margin-bottom: 1rem;
 }
